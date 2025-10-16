@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Facial Expression Detector
 
 This project is a real-time facial expression detection application that uses your webcam to analyze your emotions and display corresponding images based on the detected emotion. The application utilizes the OpenCV library for video capture and the DeepFace library for emotion detection.
@@ -66,3 +67,7 @@ You can find the specific versions of these libraries in the `requirements.txt` 
 
 - Ensure that the images (happy.jpg, sad.jpg, angry.jpg, surprised.jpg, neutral.jpg, no_face.jpg) are placed in the `images` directory as specified in the project structure.
 - The application continuously updates the displayed image based on your facial expression, so make sure to test different emotions for the best experience.
+=======
+# emotion-detecter
+detects your emotion through your webcam and show an emotion image accordingly
+>>>>>>> 33c0222a1eaf64716c014c27a153b66adb53110e
