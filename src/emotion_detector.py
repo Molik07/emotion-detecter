@@ -15,7 +15,7 @@ class EmotionDetector:
         self.last_emotion = 'neutral'
         self.emotion_history = []
         self.history_size = 5  # Number of frames to consider for smoothing
-        self.confidence_threshold = 0.3
+        self.confidence_threshold = 0.2  # Lower from 0.3 to 0.2 for more sensitive detection
         self.last_analysis_time = 0
         self.analysis_interval = 0.5  # Only analyze every 0.5 seconds for performance
         
@@ -23,6 +23,8 @@ class EmotionDetector:
         self.scale_factor = 1.1  # Smaller value = more thorough detection
         self.min_neighbors = 4   # Reduced for better sensitivity
         self.min_face_size = (60, 60)  # Minimum face size
+        
+        self.sad_boost = 1.2  # Boost sad emotion confidence
         
     def detect_emotion(self, frame):
         """
@@ -134,3 +136,22 @@ class EmotionDetector:
         smoothed_emotion = max(emotion_counts, key=emotion_counts.get)
         self.last_emotion = smoothed_emotion
         return smoothed_emotion
+    
+    def boost_emotion_confidence(self, emotions, dominant_emotion):
+        """
+        Boost confidence for emotions that are commonly under-detected
+        """
+        boosted_emotions = emotions.copy()
+        
+        # Boost sad emotion detection
+        if 'sad' in boosted_emotions:
+            boosted_emotions['sad'] *= 1.3  # Increase sad confidence by 30%
+        
+        # Boost angry detection (often confused with sad)
+        if 'angry' in boosted_emotions:
+            boosted_emotions['angry'] *= 1.1
+        
+        # Find new dominant emotion after boosting
+        new_dominant = max(boosted_emotions, key=boosted_emotions.get)
+        
+        return boosted_emotions, new_dominant
