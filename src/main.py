@@ -1,18 +1,17 @@
 # File: /facial-expression-detector/facial-expression-detector/src/main.py
 
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Hide TensorFlow warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import cv2
 from emotion_detector import EmotionDetector
 from image_manager import ImageManager
+from face_tracer import FaceTracer
 import time
 
 def main():
-    # Initialize the webcam with better settings
+    # Initialize the webcam
     cap = cv2.VideoCapture(0)
-    
-    # Optimize webcam settings for better performance
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     cap.set(cv2.CAP_PROP_FPS, 30)
@@ -24,53 +23,60 @@ def main():
     
     # Create instances
     emotion_detector = EmotionDetector()
+    face_tracer = FaceTracer()
     images_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'images')
     image_manager = ImageManager(images_folder)
     
     current_emotion = 'neutral'
-    
-    print("Starting facial expression detection...")
-    print("Press 'q' to quit")
+    show_emotion_text = False
+    show_face_trace = False
     
     while True:
-        # Capture frame-by-frame
+        # Capture frame
         ret, frame = cap.read()
         if not ret:
-            print("Error: Could not read frame")
             break
         
-        # Flip frame horizontally for mirror effect
+        # Flip frame for mirror effect
         frame = cv2.flip(frame, 1)
         
-        # Analyze the frame for emotions
+        # Detect emotion
         detected_emotion = emotion_detector.detect_emotion(frame)
         
-        # Update current emotion only if something was detected
         if detected_emotion is not None:
             current_emotion = detected_emotion
         else:
             current_emotion = 'no_face'
         
-        # Display the corresponding image
+        # Add face tracing if toggled ON
+        if show_face_trace:
+            frame = face_tracer.draw_face_landmarks(frame)
+        
+        # Display corresponding emotion image
         image_manager.display_image(current_emotion)
         
-        # Comment out or delete these lines to remove text from webcam:
-        # emotion_text = f"Emotion: {current_emotion.upper()}"
-        # cv2.putText(frame, emotion_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
-        #            0.7, (0, 255, 0), 2)
+        # Add emotion text if toggled ON
+        if show_emotion_text:
+            emotion_text = f"Emotion: {current_emotion.upper()}"
+            cv2.putText(frame, emotion_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
+                       0.7, (0, 255, 0), 2)
         
-        # Show the webcam feed
+        # Show webcam feed
         cv2.imshow('Webcam Feed', frame)
         
         # Handle key presses
         key = cv2.waitKey(1) & 0xFF
+        
         if key == ord('q'):
             break
+        elif key == ord('t'):
+            show_emotion_text = not show_emotion_text
+        elif key == ord('f'):
+            show_face_trace = not show_face_trace
     
     # Cleanup
     cap.release()
     cv2.destroyAllWindows()
-    print("Program ended")
 
 if __name__ == "__main__":
     main()
@@ -348,3 +354,53 @@ class ImageManager:
                 default_img = np.full((300, 300, 3), (128, 128, 128), dtype=np.uint8)
                 cv2.putText(default_img, "NO IMAGE", (80, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
                 cv2.imshow('Current Emotion', default_img)
+
+from imutils import face_utils
+import dlib
+import cv2
+
+class FaceTracer:
+    def __init__(self):
+        """
+        Initialize the FaceTracer class with dlib's face detector and predictor.
+        """
+        # Load dlib's face detector
+        self.detector = dlib.get_frontal_face_detector()
+        
+        # Load dlib's shape predictor for facial landmarks
+        predictor_path = "shape_predictor_68_face_landmarks.dat"  # Update path as needed
+        self.predictor = dlib.shape_predictor(predictor_path)
+
+    def draw_face_landmarks(self, frame):
+        """
+        Detect faces and draw facial landmarks on the frame.
+        
+        Args:
+            frame: Input video frame from webcam
+            
+        Returns:
+            frame: Output video frame with facial landmarks drawn
+        """
+        # Convert the frame to grayscale for dlib
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        
+        # Detect faces in the grayscale frame
+        faces = self.detector(gray)
+        
+        # Loop over the detected faces
+        for face in faces:
+            # Get the landmarks/parts for the face in box dlib.rectangle format
+            shape = self.predictor(gray, face)
+            
+            # Convert the landmarks to a NumPy array
+            landmarks = face_utils.shape_to_np(shape)
+            
+            # Draw the face bounding box
+            (x, y, w, h) = face_utils.rect_to_bb(face)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            
+            # Draw the facial landmarks
+            for (i, (x, y)) in enumerate(landmarks):
+                cv2.circle(frame, (x, y), 2, (0, 255, 0), -1)
+        
+        return frame
