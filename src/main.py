@@ -356,7 +356,7 @@ class ImageManager:
                 cv2.imshow('Current Emotion', default_img)
 
 from imutils import face_utils
-import dlib
+
 import cv2
 
 class FaceTracer:
@@ -364,12 +364,10 @@ class FaceTracer:
         """
         Initialize the FaceTracer class with dlib's face detector and predictor.
         """
-        # Load dlib's face detector
-        self.detector = dlib.get_frontal_face_detector()
         
         # Load dlib's shape predictor for facial landmarks
         predictor_path = "shape_predictor_68_face_landmarks.dat"  # Update path as needed
-        self.predictor = dlib.shape_predictor(predictor_path)
+        
 
     def draw_face_landmarks(self, frame):
         """
