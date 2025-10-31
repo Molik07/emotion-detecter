@@ -66,10 +66,10 @@ class FaceTracer:
         
         # Draw lines from face center to corners
         corners = [
-            (face_x, face_y),                    # Top-left
-            (face_x + face_w, face_y),           # Top-right
-            (face_x, face_y + face_h),           # Bottom-left
-            (face_x + face_w, face_y + face_h)   # Bottom-right
+            (face_x, face_y),
+            (face_x + face_w, face_y),
+            (face_x, face_y + face_h),
+            (face_x + face_w, face_y + face_h)
         ]
         
         for corner in corners:
@@ -87,12 +87,12 @@ class FaceTracer:
     
     def draw_measurement_grid(self, frame, x, y, w, h):
         """Draw measurement grid on face"""
-        # Vertical lines (rule of thirds)
+        # Vertical lines
         for i in [1, 2]:
             line_x = x + (w * i // 3)
             cv2.line(frame, (line_x, y), (line_x, y + h), (80, 80, 80), 1)
         
-        # Horizontal lines (rule of thirds)
+        # Horizontal lines
         for i in [1, 2]:
             line_y = y + (h * i // 3)
             cv2.line(frame, (x, line_y), (x + w, line_y), (80, 80, 80), 1)
