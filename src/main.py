@@ -7,76 +7,84 @@ import cv2
 from emotion_detector import EmotionDetector
 from image_manager import ImageManager
 from face_tracer import FaceTracer
-import time
+
+
+def _open_camera():
+    """Open the first available camera with stable Windows backends."""
+    for backend in (cv2.CAP_DSHOW, cv2.CAP_ANY):
+        for idx in (0, 1, 2):
+            cap = cv2.VideoCapture(idx, backend)
+            if cap.isOpened():
+                ret, _ = cap.read()
+                if ret:
+                    # Configure once camera is confirmed working
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                    cap.set(cv2.CAP_PROP_FPS, 30)
+                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                    return cap
+            if cap is not None:
+                cap.release()
+    return None
+
 
 def main():
-    # Initialize the webcam
-    cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    cap.set(cv2.CAP_PROP_FPS, 30)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-    
-    if not cap.isOpened():
-        print("Error: Could not open webcam")
+    cap = _open_camera()
+    if cap is None:
+        print("Error: Could not open webcam.")
         return
-    
-    # Create instances
+
+    # Instances
     emotion_detector = EmotionDetector()
     face_tracer = FaceTracer()
     images_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'images')
     image_manager = ImageManager(images_folder)
-    
-    current_emotion = 'neutral'
+
+    # UI toggles
     show_emotion_text = False
     show_face_trace = False
-    
+    current_emotion = 'neutral'
+
     while True:
-        # Capture frame
-        ret, frame = cap.read()
-        if not ret:
-            break
-        
-        # Flip frame for mirror effect
+        ok, frame = cap.read()
+        if not ok:
+            # Drop and continue; camera hiccup
+            continue
+
         frame = cv2.flip(frame, 1)
-        
-        # Detect emotion
-        detected_emotion = emotion_detector.detect_emotion(frame)
-        
-        if detected_emotion is not None:
-            current_emotion = detected_emotion
-        else:
-            current_emotion = 'no_face'
-        
-        # Add face tracing if toggled ON
+
+        detected = emotion_detector.detect_emotion(frame)
+        current_emotion = detected if detected is not None else 'no_face'
+
         if show_face_trace:
             frame = face_tracer.draw_face_landmarks(frame)
-        
-        # Display corresponding emotion image
+
         image_manager.display_image(current_emotion)
-        
-        # Add emotion text if toggled ON
+
         if show_emotion_text:
-            emotion_text = f"Emotion: {current_emotion.upper()}"
-            cv2.putText(frame, emotion_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
-                       0.7, (0, 255, 0), 2)
-        
-        # Show webcam feed
+            cv2.putText(
+                frame,
+                f"Emotion: {current_emotion.upper()}",
+                (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 255, 0),
+                2
+            )
+
         cv2.imshow('Webcam Feed', frame)
-        
-        # Handle key presses
+
         key = cv2.waitKey(1) & 0xFF
-        
-        if key == ord('q'):
+        if key in (27, ord('q')):  # ESC or q
             break
         elif key == ord('t'):
             show_emotion_text = not show_emotion_text
         elif key == ord('f'):
             show_face_trace = not show_face_trace
-    
-    # Cleanup
+
     cap.release()
     cv2.destroyAllWindows()
+
 
 if __name__ == "__main__":
     main()
